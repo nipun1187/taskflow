@@ -33,9 +33,20 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? "DEV_ONLY_KEY_REPLACE_IN_PRODUCTION_32CHARS!";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// AddIdentity above already registered cookie auth as the default scheme.
+// Override every default so [Authorize] picks JWT bearer, not cookies.
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(opt =>
     {
+        opt.RequireHttpsMetadata = false;  // Codespaces / local dev over HTTP
         opt.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
