@@ -8,11 +8,16 @@ A production-ready ASP.NET Core Web API for personal and team task management. B
 
 ## Live Demo
 
-- **Swagger UI (live)**: https://taskflow-demo.azurewebsites.net/swagger
-- **Hosted API base**: https://taskflow-demo.azurewebsites.net/api
-- **Postman collection**: [`docs/TaskFlow.postman_collection.json`](docs/TaskFlow.postman_collection.json)
+Clone and run locally — Swagger UI opens at `https://localhost:5001/swagger`:
 
-> Replace the demo URLs above with your own once you deploy. See [Deployment](#deployment).
+```bash
+git clone https://github.com/nipun1187/taskflow.git
+cd taskflow
+dotnet run --project src/TaskFlow.Api
+```
+
+- **Postman collection**: [`docs/TaskFlow.postman_collection.json`](docs/TaskFlow.postman_collection.json)
+- A free public Azure / Render deployment is planned — see [Deployment](#deployment).
 
 ## Tech Stack
 
@@ -68,7 +73,7 @@ DTOs isolate the API surface from the domain model.
 ### Run locally
 
 ```bash
-git clone https://github.com/<your-username>/taskflow.git
+git clone https://github.com/nipun1187/taskflow.git
 cd taskflow
 dotnet restore
 dotnet ef database update --project src/TaskFlow.Api
