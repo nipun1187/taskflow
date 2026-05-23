@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TaskFlow — Task Management</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231E3A8A'/%3E%3Cpath d='M25 50l15 15 35-35' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #1E3A8A;
+    --primary-hover: #1E40AF;
+    --accent: #3B82F6;
+    --light: #DBEAFE;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #0F172A;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --purple: #8B5CF6;
+    --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --shadow-lg: 0 10px 25px rgba(15,23,42,.08), 0 4px 10px rgba(15,23,42,.04);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  /* ---------- top bar ---------- */
+  .topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 19px; font-weight: 700; color: var(--primary);
+  }
+  .brand-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--primary);
+    display: grid; place-items: center;
+    color: white; font-weight: 800; font-size: 14px;
+  }
+  .user-info { display: flex; align-items: center; gap: 14px; }
+  .user-chip {
+    background: var(--light);
+    color: var(--primary);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+  }
+  /* ---------- buttons ---------- */
+  button {
+    font: inherit; cursor: pointer; border: none;
+    padding: 10px 18px; border-radius: 8px;
+    background: var(--primary); color: white;
+    font-weight: 600; font-size: 14px;
+    transition: background .15s, transform .05s;
+  }
+  button:hover { background: var(--primary-hover); }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  button.ghost:hover { background: var(--bg); color: var(--text); }
+  button.danger { background: var(--red); }
+  button.danger:hover { background: #DC2626; }
+  button.small { padding: 6px 10px; font-size: 12px; }
+  /* ---------- layout ---------- */
+  main { max-width: 1200px; margin: 0 auto; padding: 28px; }
+  /* ---------- auth screen ---------- */
+  .auth-screen {
+    min-height: calc(100vh - 64px);
+    display: grid; place-items: center;
+    padding: 20px;
+  }
+  .auth-card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    width: 100%; max-width: 420px;
+  }
+  .auth-tabs {
+    display: flex; gap: 4px;
+    background: var(--bg); padding: 4px;
+    border-radius: 10px; margin-bottom: 24px;
+  }
+  .auth-tabs button {
+    flex: 1; background: transparent; color: var(--muted);
+    padding: 8px;
+  }
+  .auth-tabs button.active {
+    background: var(--card); color: var(--primary);
+    box-shadow: var(--shadow);
+  }
+  .auth-card h1 {
+    font-size: 22px; margin-bottom: 6px; color: var(--text);
+  }
+  .auth-card .subtitle {
+    color: var(--muted); margin-bottom: 24px; font-size: 14px;
+  }
+  /* ---------- form fields ---------- */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font: inherit; background: var(--card); color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .full-width { width: 100%; }
+  /* ---------- alerts ---------- */
+  .alert {
+    padding: 10px 14px; border-radius: 8px;
+    font-size: 13px; margin-bottom: 14px;
+  }
+  .alert.error { background: #FEE2E2; color: #991B1B; }
+  .alert.success { background: #D1FAE5; color: #065F46; }
+  /* ---------- dashboard layout ---------- */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 24px;
+  }
+  @media (max-width: 860px) {
+    .dashboard { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card h2 {
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 16px; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h2 .badge {
+    background: var(--light); color: var(--primary);
+    font-size: 12px; padding: 2px 8px; border-radius: 999px;
+  }
+  /* ---------- task list ---------- */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 16px; align-items: center;
+  }
+  .toolbar select {
+    padding: 6px 10px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card);
+  }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .task:hover { box-shadow: var(--shadow); }
+  .task.completed { opacity: .7; }
+  .task.completed .task-title { text-decoration: line-through; }
+  .task-check {
+    margin-top: 2px;
+    width: 20px; height: 20px;
+    cursor: pointer;
+  }
+  .task-body { flex: 1; min-width: 0; }
+  .task-title {
+    font-weight: 600; color: var(--text);
+    margin-bottom: 4px; word-break: break-word;
+  }
+  .task-meta {
+    font-size: 12px; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .task-meta .chip {
+    padding: 2px 8px; border-radius: 999px;
+    font-weight: 600; font-size: 11px;
+  }
+  .chip.low { background: #E0E7FF; color: #3730A3; }
+  .chip.medium { background: #DBEAFE; color: #1E40AF; }
+  .chip.high { background: #FED7AA; color: #9A3412; }
+  .chip.critical { background: #FECACA; color: #991B1B; }
+  .chip.pending { background: #E2E8F0; color: #475569; }
+  .chip.inprogress { background: #DBEAFE; color: #1E40AF; }
+  .chip.completed { background: #D1FAE5; color: #065F46; }
+  .chip.archived { background: #F1F5F9; color: #64748B; }
+  .task-description {
+    font-size: 13px; color: var(--muted);
+    margin-top: 6px;
+  }
+  .task-actions {
+    display: flex; gap: 6px; align-items: flex-start;
+  }
+  .icon-btn {
+    background: transparent; color: var(--muted);
+    padding: 6px; width: 32px; height: 32px;
+    border-radius: 6px; display: grid; place-items: center;
+  }
+  .icon-btn:hover { background: var(--border); color: var(--text); }
+  .icon-btn.delete:hover { background: #FEE2E2; color: var(--red); }
+  /* ---------- empty state ---------- */
+  .empty {
+    text-align: center; padding: 40px 20px;
+    color: var(--muted); font-size: 14px;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 8px; opacity: .35; }
+  /* ---------- stats bar ---------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 24px;
+  }
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  .stat {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px;
+    border-left: 3px solid var(--primary);
+    box-shadow: var(--shadow);
+  }
+  .stat .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .stat .value { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat.pending { border-left-color: var(--muted); }
+  .stat.inprogress { border-left-color: var(--accent); }
+  .stat.completed { border-left-color: var(--green); }
+  .stat.critical { border-left-color: var(--red); }
+  /* ---------- modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.5);
+    display: none; place-items: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-backdrop.show { display: grid; }
+  .modal {
+    background: var(--card); border-radius: 14px;
+    padding: 28px; width: 100%; max-width: 460px;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal h2 { margin-bottom: 18px; font-size: 18px; }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 18px;
+  }
+  /* ---------- spinner ---------- */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  /* footer */
+  footer {
+    text-align: center; padding: 24px;
+    color: var(--muted); font-size: 12px;
+  }
+  footer a { color: var(--primary); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+                       TOP BAR
+============================================================ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">T</div>
+    TaskFlow
+  </div>
+  <div class="user-info" id="userInfo" hidden>
+    <span class="user-chip" id="userChip"></span>
+    <button class="ghost small" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<!-- ============================================================
+                       AUTH SCREEN
+============================================================ -->
+<section id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button id="loginTab" class="active" onclick="switchTab('login')">Sign In</button>
+      <button id="registerTab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div id="authError" class="alert error" hidden></div>
+    <div id="authSuccess" class="alert success" hidden></div>
+
+    <!-- Login form -->
+    <form id="loginForm" onsubmit="login(event)">
+      <h1>Welcome back</h1>
+      <p class="subtitle">Sign in to manage your tasks</p>
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" required placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" required placeholder="••••••••" />
+      </div>
+      <button type="submit" class="full-width" id="loginBtn">Sign In</button>
+    </form>
+
+    <!-- Register form -->
+    <form id="registerForm" onsubmit="register(event)" hidden>
+      <h1>Create an account</h1>
+      <p class="subtitle">Start tracking tasks in seconds</p>
+      <div class="field">
+        <label for="regName">Display name</label>
+        <input id="regName" type="text" required placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label for="regEmail">Email</label>
+        <input id="regEmail" type="email" required placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label for="regPassword">Password</label>
+        <input id="regPassword" type="password" required minlength="8"
+               placeholder="At least 8 chars, 1 uppercase, 1 digit" />
+      </div>
+      <button type="submit" class="full-width" id="registerBtn">Create account</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============================================================
+                       DASHBOARD
+============================================================ -->
+<main id="dashboard" hidden>
+  <!-- stats -->
+  <div class="stats">
+    <div class="stat pending"><div class="label">Pending</div><div class="value" id="statPending">0</div></div>
+    <div class="stat inprogress"><div class="label">In progress</div><div class="value" id="statInprogress">0</div></div>
+    <div class="stat completed"><div class="label">Completed</div><div class="value" id="statCompleted">0</div></div>
+    <div class="stat critical"><div class="label">Critical</div><div class="value" id="statCritical">0</div></div>
+  </div>
+
+  <div class="dashboard">
+    <!-- create form -->
+    <div class="card">
+      <h2>+ New task</h2>
+      <div id="createError" class="alert error" hidden></div>
+      <form onsubmit="createTask(event)" id="createForm">
+        <div class="field">
+          <label for="newTitle">Title *</label>
+          <input id="newTitle" type="text" required maxlength="200" placeholder="e.g. Finish project report" />
+        </div>
+        <div class="field">
+          <label for="newDescription">Description</label>
+          <textarea id="newDescription" maxlength="2000" placeholder="Optional details..."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="newPriority">Priority</label>
+            <select id="newPriority">
+              <option value="0">Low</option>
+              <option value="1" selected>Medium</option>
+              <option value="2">High</option>
+              <option value="3">Critical</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="newDueDate">Due date</label>
+            <input id="newDueDate" type="date" />
+          </div>
+        </div>
+        <button type="submit" class="full-width" id="createBtn">Create task</button>
+      </form>
+    </div>
+
+    <!-- task list -->
+    <div class="card">
+      <h2>
+        My tasks
+        <span class="badge" id="totalCount">0</span>
+      </h2>
+      <div class="toolbar">
+        <select id="filterStatus" onchange="loadTasks()">
+          <option value="">All statuses</option>
+          <option value="0">Pending</option>
+          <option value="1">In progress</option>
+          <option value="2">Completed</option>
+          <option value="3">Archived</option>
+        </select>
+        <select id="filterPriority" onchange="loadTasks()">
+          <option value="">All priorities</option>
+          <option value="0">Low</option>
+          <option value="1">Medium</option>
+          <option value="2">High</option>
+          <option value="3">Critical</option>
+        </select>
+        <button class="ghost small" onclick="loadTasks()">↻ Refresh</button>
+      </div>
+      <div id="taskList" class="task-list"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ============================================================
+                       EDIT MODAL
+============================================================ -->
+<div class="modal-backdrop" id="editBackdrop" onclick="closeEdit(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Edit task</h2>
+    <form onsubmit="saveEdit(event)" id="editForm">
+      <input type="hidden" id="editId" />
+      <div class="field">
+        <label>Title</label>
+        <input id="editTitle" type="text" required maxlength="200" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="editDescription" maxlength="2000"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Status</label>
+          <select id="editStatus">
+            <option value="0">Pending</option>
+            <option value="1">In progress</option>
+            <option value="2">Completed</option>
+            <option value="3">Archived</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select id="editPriority">
+            <option value="0">Low</option>
+            <option value="1">Medium</option>
+            <option value="2">High</option>
+            <option value="3">Critical</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Due date</label>
+        <input id="editDueDate" type="date" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" onclick="closeEdit()">Cancel</button>
+        <button type="submit">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer>
+  TaskFlow — ASP.NET Core 8 + EF Core + JWT &nbsp;·&nbsp;
+  <a href="/swagger" target="_blank">View Swagger API docs</a> &nbsp;·&nbsp;
+  <a href="https://github.com/nipun1187/taskflow" target="_blank">Source on GitHub</a>
+</footer>
+
+<script>
+// ===========================================================================
+// state
+// ===========================================================================
+const STORAGE_TOKEN = "tf_token";
+const STORAGE_NAME  = "tf_name";
+let token = localStorage.getItem(STORAGE_TOKEN);
+let displayName = localStorage.getItem(STORAGE_NAME);
+
+// API base — same origin as the page
+const API = "/api";
+
+// ===========================================================================
+// helpers
+// ===========================================================================
+async function api(method, path, body) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(API + path, {
+    method, headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* 204 No Content etc. */ }
+  return { ok: res.ok, status: res.status, data };
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.hidden = false;
+  setTimeout(() => el.hidden = true, 4500);
+}
+
+function setBusy(btnId, busy, normalText) {
+  const b = document.getElementById(btnId);
+  b.disabled = busy;
+  b.innerHTML = busy ? '<span class="spinner"></span>' : normalText;
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+const STATUS_LABELS   = ["Pending", "In progress", "Completed", "Archived"];
+const STATUS_CLASSES  = ["pending", "inprogress", "completed", "archived"];
+const PRIORITY_LABELS = ["Low", "Medium", "High", "Critical"];
+const PRIORITY_CLASSES= ["low", "medium", "high", "critical"];
+
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+// ===========================================================================
+// auth screens
+// ===========================================================================
+function switchTab(which) {
+  document.getElementById("loginTab").classList.toggle("active", which === "login");
+  document.getElementById("registerTab").classList.toggle("active", which === "register");
+  document.getElementById("loginForm").hidden = which !== "login";
+  document.getElementById("registerForm").hidden = which !== "register";
+  document.getElementById("authError").hidden = true;
+  document.getElementById("authSuccess").hidden = true;
+}
+
+async function login(e) {
+  e.preventDefault();
+  setBusy("loginBtn", true, "Sign In");
+  const { ok, data } = await api("POST", "/auth/login", {
+    email: loginEmail.value, password: loginPassword.value
+  });
+  setBusy("loginBtn", false, "Sign In");
+  if (!ok) { showAlert("authError", (data && data.error) || "Invalid credentials"); return; }
+  token = data.accessToken;
+  displayName = data.displayName;
+  localStorage.setItem(STORAGE_TOKEN, token);
+  localStorage.setItem(STORAGE_NAME, displayName);
+  enterDashboard();
+}
+
+async function register(e) {
+  e.preventDefault();
+  setBusy("registerBtn", true, "Create account");
+  const { ok, data } = await api("POST", "/auth/register", {
+    email: regEmail.value,
+    password: regPassword.value,
+    displayName: regName.value
+  });
+  setBusy("registerBtn", false, "Create account");
+  if (!ok) {
+    showAlert("authError", (data && data.error) || "Registration failed");
+    return;
+  }
+  showAlert("authSuccess", "Account created — signing you in…");
+  // Auto-login
+  loginEmail.value = regEmail.value;
+  loginPassword.value = regPassword.value;
+  setTimeout(() => loginForm.requestSubmit(), 400);
+  switchTab("login");
+}
+
+function logout() {
+  token = null;
+  displayName = null;
+  localStorage.removeItem(STORAGE_TOKEN);
+  localStorage.removeItem(STORAGE_NAME);
+  document.getElementById("authScreen").hidden = false;
+  document.getElementById("dashboard").hidden = true;
+  document.getElementById("userInfo").hidden = true;
+  loginForm.reset(); registerForm.reset();
+}
+
+// ===========================================================================
+// dashboard
+// ===========================================================================
+function enterDashboard() {
+  document.getElementById("authScreen").hidden = true;
+  document.getElementById("dashboard").hidden = false;
+  document.getElementById("userInfo").hidden = false;
+  document.getElementById("userChip").textContent = "👤 " + displayName;
+  loadTasks();
+}
+
+async function loadTasks() {
+  const status = document.getElementById("filterStatus").value;
+  const priority = document.getElementById("filterPriority").value;
+  const params = new URLSearchParams();
+  if (status   !== "") params.set("status", status);
+  if (priority !== "") params.set("priority", priority);
+  params.set("pageSize", "100");
+
+  const { ok, status: code, data } = await api("GET", "/tasks?" + params.toString());
+  if (code === 401) { logout(); return; }
+  if (!ok) { renderTasks([]); return; }
+  renderTasks(data || []);
+}
+
+function renderTasks(tasks) {
+  document.getElementById("totalCount").textContent = tasks.length;
+  // Update stats: we need overall counts not filtered, so refetch unfiltered:
+  fetch(API + "/tasks?pageSize=100", { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.ok ? r.json() : [])
+    .then(all => {
+      document.getElementById("statPending").textContent     = all.filter(t => t.status === 0).length;
+      document.getElementById("statInprogress").textContent  = all.filter(t => t.status === 1).length;
+      document.getElementById("statCompleted").textContent   = all.filter(t => t.status === 2).length;
+      document.getElementById("statCritical").textContent    = all.filter(t => t.priority === 3).length;
+    });
+
+  const list = document.getElementById("taskList");
+  if (!tasks.length) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">✓</div>
+        <div>No tasks yet. Add your first task on the left.</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = tasks.map(t => {
+    const isDone = t.status === 2;
+    return `
+    <div class="task ${isDone ? "completed" : ""}">
+      <input type="checkbox" class="task-check" ${isDone ? "checked" : ""}
+             onchange="toggleDone(${t.id}, this.checked, ${JSON.stringify(t).replace(/"/g, "&quot;")})" />
+      <div class="task-body">
+        <div class="task-title">${escapeHtml(t.title)}</div>
+        <div class="task-meta">
+          <span class="chip ${PRIORITY_CLASSES[t.priority]}">${PRIORITY_LABELS[t.priority]}</span>
+          <span class="chip ${STATUS_CLASSES[t.status]}">${STATUS_LABELS[t.status]}</span>
+          ${t.dueDate ? `<span>📅 Due ${formatDate(t.dueDate)}</span>` : ""}
+          <span>· created ${formatDate(t.createdAt)}</span>
+        </div>
+        ${t.description ? `<div class="task-description">${escapeHtml(t.description)}</div>` : ""}
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn" title="Edit"
+                onclick='openEdit(${JSON.stringify(t).replace(/'/g, "&#39;")})'>✎</button>
+        <button class="icon-btn delete" title="Delete" onclick="deleteTask(${t.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function createTask(e) {
+  e.preventDefault();
+  setBusy("createBtn", true, "Create task");
+  const body = {
+    title: newTitle.value,
+    description: newDescription.value || null,
+    priority: parseInt(newPriority.value, 10),
+    dueDate: newDueDate.value ? new Date(newDueDate.value).toISOString() : null
+  };
+  const { ok, data } = await api("POST", "/tasks", body);
+  setBusy("createBtn", false, "Create task");
+  if (!ok) {
+    showAlert("createError",
+      (data && (data.error || JSON.stringify(data.errors || data))) || "Failed to create task");
+    return;
+  }
+  createForm.reset();
+  newPriority.value = "1";
+  loadTasks();
+}
+
+async function toggleDone(id, checked, original) {
+  const newStatus = checked ? 2 : 0;
+  const body = {
+    title: original.title,
+    description: original.description,
+    status: newStatus,
+    priority: original.priority,
+    dueDate: original.dueDate
+  };
+  await api("PUT", "/tasks/" + id, body);
+  loadTasks();
+}
+
+async function deleteTask(id) {
+  if (!confirm("Delete this task?")) return;
+  await api("DELETE", "/tasks/" + id);
+  loadTasks();
+}
+
+// ===========================================================================
+// edit modal
+// ===========================================================================
+function openEdit(t) {
+  editId.value = t.id;
+  editTitle.value = t.title;
+  editDescription.value = t.description || "";
+  editStatus.value = t.status;
+  editPriority.value = t.priority;
+  editDueDate.value = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : "";
+  document.getElementById("editBackdrop").classList.add("show");
+}
+
+function closeEdit(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById("editBackdrop").classList.remove("show");
+}
+
+async function saveEdit(e) {
+  e.preventDefault();
+  const id = editId.value;
+  const body = {
+    title: editTitle.value,
+    description: editDescription.value || null,
+    status: parseInt(editStatus.value, 10),
+    priority: parseInt(editPriority.value, 10),
+    dueDate: editDueDate.value ? new Date(editDueDate.value).toISOString() : null
+  };
+  const { ok, data } = await api("PUT", "/tasks/" + id, body);
+  if (!ok) { alert((data && data.error) || "Save failed"); return; }
+  closeEdit(); loadTasks();
+}
+
+// ===========================================================================
+// boot
+// ===========================================================================
+if (token && displayName) enterDashboard();
+</script>
+
+</body>
+</html>
